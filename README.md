@@ -1,4 +1,4 @@
-# Bouncer 🚪
+# Bouncer 
 
 A tiny auth system built completely from scratch — no Passport, no Auth0,
 no Firebase magic. Just bcrypt, JWTs, and me making sure I actually
