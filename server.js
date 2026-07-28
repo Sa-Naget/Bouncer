@@ -37,5 +37,5 @@ app.get('/healthz', (req, res) => res.json({ status: "Yep, I'm fine." }));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log("Alright, server runs on http://localhost:${PORT , have fun :)")
+    console.log(`Alright, server runs on http://localhost:${PORT} , have fun :)`)
 });
