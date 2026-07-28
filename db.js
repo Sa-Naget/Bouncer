@@ -1,7 +1,7 @@
-import Database from 'better-sqlite3';
+import { DatabaseSync } from "node:sqlite";
 
 // Single file database
-const db = new Database('auth.db');
+const db = new DatabaseSync('auth.db');
 
 db.exec(`
     CREATE TABLE IF NOT EXISTS users (
