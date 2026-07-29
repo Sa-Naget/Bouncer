@@ -48,7 +48,7 @@ async function main() {
     console.log(`  "${password}" -> ${status} (${ms}ms)${flag} (๑•̀ㅁ•́๑)!`);
   }
 
-  console.log(`\nAnd.. done! ${blocked}/${wrongPasswords.length} attempts were blocked ( ◡̀_◡́)ᕤ\n`);
+  console.log(`\nAnd... done! ${blocked}/${wrongPasswords.length} attempts were blocked, couldn't be me ( ◡̀_◡́)ᕤ\n`);
   if (blocked === 0) {
     console.log('How co0oolll! None of them were blocked, the server let us try every single one XD');
     console.log('I guess that\'ll be the job of rate limit huh?\n');
