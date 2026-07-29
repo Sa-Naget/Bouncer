@@ -3,6 +3,15 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import authRoutes from './routes/auth.js';
 
+if (!process.env.JWT_SECRET) {
+    console.error(
+        '\nMISSING! JWT_SECRET' +
+        'Have you copied the env.example to .env and its value?\n' +
+        'Whoever found them will get a working program'
+    );
+    process.exit(1);
+}
+
 const app = express();
 app.use(express.json());
 
@@ -19,11 +28,12 @@ function requireAuth(req, res, next) {
     }
 
     try {
-        const payload = jwt.verify(tokeb, process.env.JWT_SECRET);
+        const payload = jwt.verify(token, process.env.JWT_SECRET);
         req.user = payload;
         next();
     } catch (err) {
-        // Covers both expired and invalid signatures
+        // Covers both expired and invalid 
+        console.error(err.name, err.message); // temporary debug line
         return res.status(401).json({ error: "Yeah... no. You got an expired OR invalid token" });
     }
 }
