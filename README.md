@@ -7,16 +7,18 @@ Just bcrypt, JWTs, and me making sure I actually understand what's happening at 
 
 ```
 bouncer/
-├── server.js          ← the entry point, wires everything up
-├── db.js              ← schema + connection, shared by everything
+├── server.js               ← the entry point, wires everything up
+├── db.js                   ← schema + connection, shared by everything
 ├── routes/
-│   └── auth.js        ← register + login, hashing, token issuing
-├── .env.example       ← copy me to .env and fill in your secret
-└── auth.db            ← created automatically on first run ♪
+│   └── auth.js             ← register + login, hashing, token issuing
+├── scripts/
+│   └── brute-force-test.js ← hammers login to prove the point below
+├── .env.example            ← copy me to .env and fill it with your own secret
+└── auth.db                 ← created automatically on first run ♪
 ```
 
 Only one place knows the schema: `db.js`. `auth.js` just asks it questions (◡ ‿ ◡ .)
-Fixing a bug or adding a column happens once, everywhere picks it up.
+Fixing a bug or adding a column happens once, others just picks it up.
 
 ## Usage (๑ > ᴗ < ๑)
 
@@ -55,12 +57,25 @@ curl http://localhost:3000/me \
 - Register and login return the same vague error either way, so nobody can fish for which emails are already signed up
 - Tokens are JWTs with a short 15 minute expiry so that a stolen wristband doesn't stay useful for long you kno
 
+## Rate limiting (˶ᵔ ᵕ ᵔ˶) stage 3
+
+The bouncer finally notices repeat troublemakers, two ways:
+
+- **By IP** ; max 5 login attempts per 15 minutes from the same address
+- **By account** ; max 5 failed attempts on the *same email* no matter where they come from, then it's a 15 minute lockout
+
+`scripts/brute-force-test.js` used to breeze through all 20 wrong passwords
+with nothing stopping it. Run it again now and watch it get shut down
+partway through (｀へ´)
+
+A successful login wipes the slate clean, no grudges held once you prove who you are.
+
 ## Roadmap ⋆.˚ (ᵕ—ᴗ—)
 
-Currently at **stage 1** (register + login). 
-Next up: session hardening, rate limiting so the bouncer notices someone trying every password in the book, a password reset flow, and TOTP 2FA so there's a second ID check at the door
+Currently at **stage 3** (rate limiting). 
+Next up: session hardening, a password reset flow, and TOTP 2FA so there's a second ID check at the door
 
 ## Stack 三三ᕕ( ᐛ )ᕗ
 
-Node.js, Express, better-sqlite3, bcrypt, jsonwebtoken. 
+Node.js, Express, node:sqlite (built into Node, no compiling needed), bcryptjs, jsonwebtoken, express-rate-limit. 
 Deliberately no auth framework so every piece stays visible and explainable :D
