@@ -37,7 +37,7 @@ async function attempt(password) {
 
 async function main() {
   console.log("\nHello!! It is I Ruthe :3")
-  console.log(`I'm attempting ${wrongPasswords.length} wrong passwords against ${email} ...\n`);
+  console.log(`I'm attempting ${wrongPasswords.length} passwords against ${email} ...\n`);
 
   let blocked = 0;
 
