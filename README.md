@@ -38,7 +38,7 @@ curl -X POST http://localhost:3000/auth/register \
 # Login — bouncer checks your ID against the file, hands you a wristband
 curl -X POST http://localhost:3000/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"me@naget.com","password":"geda-gedi-geda-geda"}'
+  -d '{"email":"me@naget.com","password":"smiling-golden-brown-nugget"}'
 
 # Flash your wristband to get past the velvet rope 
 curl http://localhost:3000/me \
