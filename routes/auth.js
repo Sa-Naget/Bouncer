@@ -5,6 +5,10 @@ import ratelimit from 'express-rate-limit';
 import db from '../db.js';
 import { fail } from 'node:assert';
 import { count } from 'node:console';
+import { generateRefreshToken, revokeRefreshToken } from './token.js';
+import { access } from 'node:fs';
+import { ref } from 'node:process';
+import { type } from 'node:os';
 
 const router = Router();
 
@@ -66,6 +70,14 @@ function isValidPassword(password) {
   return typeof password === 'string' && password.length >= 10;
 }
 
+function signAccessToken(user) {
+    return jwt.sign(
+        { sub: user.id, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
+    );
+}
+
 router.post('/register', async (req, res) => {
   const { email, password } = req.body;
 
@@ -104,15 +116,14 @@ router.post('/login', loginLimiter, async (req, res) => {
   if (lockoutStatus.locked) {
     const retryAfterSeconds = Math.ceil(lockoutStatus.retryAfterMs / 1000);
     return res.status(429).json({
-        error: "You tried too much smartass. Try again later, aight?" 
+        error: "You tried too much smartass. Try again later, aight?", retryAfterSeconds
     });
   }
 
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 
   // Always run bcrypt.compare, even if the user doesn't exist
-  // Otherwise, a missing user returns instantly while a real user takes ~100ms
-  // [An attacker can time this to enumerate accounts]
+  // Otherwise, a missing user returns instantly while a real user takes ~100ms [An attacker can time this to enumerate accounts]
   const hashToCheck = user
     ? user.password_hash
     : '$2b$12$C6UzMDM.H6dfI/f/IKcEeO6H0lJj3f0f0d2i3z8b2fPQK1234567890';
@@ -125,13 +136,49 @@ router.post('/login', loginLimiter, async (req, res) => {
 
   clearFailedAttempts(email);
 
-  const token = jwt.sign(
-    { sub: user.id, email: user.email },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
-  );
+  const accessToken = signAccessToken(user);
+  const refreshToken = generateRefreshToken(user.id);
 
-  return res.json({ token });
+  return res.json({ accessToken, refreshToken });
+});
+
+// Trade a refres token for a new access token without re-entering a password
+router.post('/refres', (req, res) => {
+    const { refreshToken } = req.body;
+
+    if (typeof refreshToken !== 'string') {
+        return res.status(400).json({ error: "Seems like you're missing a refresh token" });
+    }
+
+    const record = findRefreshToken(refreshToken);
+    if (!record) {
+        return res.status(401).json({ error: 'Nope, you got an invalid or expired refresh token over there' });
+    }
+
+    const user = db.prepare(`SELCT * FROM users WHERE id = ?`).get(record.user_id);
+    if (!user) {
+        return res.status(401).json({ error: 'Nope, you got an invalid or expired refresh token over there' });
+    }
+
+    // Now, rotatet the refresh token by revoking the old one and issue a brand new one
+    revokeRefreshToken(refreshToken);
+    const newRefreshToken = generateRefreshToken(user.id);
+    const accessToken = signAccessToken(user);
+
+    return res.json({ accessToken, refreshToken: newRefreshToken });
+});
+
+// Logout revokes the refresh token so that it can't be used again
+// The access token itself cannot be cancelled early, but it'll expires within 15 minutes on its own
+router.post('/logout', (req, res) => {
+    const { refreshToken } = req.body;
+
+    if (typeof refreshToken === 'string') {
+        revokeRefreshToken(refreshToken);
+    }
+
+    // Will always report success whether or not the token existed
+    return res.json({ message: `Yeah yeah, see you later` })
 });
 
 export default router;
